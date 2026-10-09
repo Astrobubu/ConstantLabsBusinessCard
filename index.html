@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constant Labs Cards</title>
+<style>
+  @font-face { font-family: "AC Compacta"; src: url("assets/fonts/AC-Compacta.otf") format("opentype"); font-display: block; }
+  @font-face { font-family: "Geist Mono"; font-weight: 400; src: url("assets/fonts/GeistMono-Regular.woff2") format("woff2"); font-display: block; }
+  @font-face { font-family: "Geist Mono"; font-weight: 500; src: url("assets/fonts/GeistMono-Medium.woff2") format("woff2"); font-display: block; }
+  @font-face { font-family: "Geist Pixel"; src: url("assets/fonts/GeistPixel-Circle.woff2") format("woff2"); font-display: block; }
+
+  :root {
+    --ink: #0A0F0D;
+    --teal: #3E8C7A;
+    --cyan: #39AC99;
+    --cream: #EDE8DC;
+    --page: #161917;
+    --page-text: #EDE8DC;
+    --page-dim: #8A928E;
+    /* Card is 85 x 55 mm, drawn at 300 dpi: 1004 x 650 px. */
+    --cw: 1004px;
+    --ch: 650px;
+    --radius: 41px; /* 3.5 mm */
+    --s: 0.46;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--page); color: var(--page-text); font-family: "Geist Mono", ui-monospace, monospace; -webkit-font-smoothing: antialiased; }
+
+  header.page { padding: 48px 40px 8px; max-width: 1180px; margin: 0 auto; }
+  header.page h1 { font-family: "AC Compacta", sans-serif; font-weight: 400; font-size: 64px; line-height: .9; letter-spacing: .005em; text-transform: uppercase; }
+  header.page p { color: var(--page-dim); font-size: 13px; margin-top: 12px; line-height: 1.6; max-width: 70ch; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 40px 96px; display: grid; gap: 56px; }
+  .pair h2 { font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--page-dim); margin-bottom: 14px; }
+  .pair h2 b { color: var(--page-text); font-weight: 500; margin-right: 10px; }
+  .faces { display: flex; gap: 28px; flex-wrap: wrap; }
+
+  .slot { width: calc(var(--cw) * var(--s)); height: calc(var(--ch) * var(--s)); flex: none; position: relative; }
+  .slot > .card { transform: scale(var(--s)); transform-origin: 0 0; position: absolute; top: 0; left: 0; box-shadow: 0 30px 60px -20px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04); }
+
+  .card { width: var(--cw); height: var(--ch); border-radius: var(--radius); overflow: hidden; position: relative; isolation: isolate; }
+  .card > * { position: absolute; }
+  .card canvas.field { display: block; image-rendering: pixelated; z-index: 0; }
+  .card .z { z-index: 1; }
+
+  .mono { font-family: "Geist Mono", monospace; font-weight: 400; letter-spacing: .08em; }
+  .mono-m { font-family: "Geist Mono", monospace; font-weight: 500; letter-spacing: .08em; }
+  .pixel { font-family: "Geist Pixel", "Geist Mono", monospace; }
+  .compacta { font-family: "AC Compacta", sans-serif; font-weight: 400; text-transform: uppercase; line-height: 1; white-space: nowrap; transform-origin: 0 0; }
+  .logo { display: block; overflow: visible; }
+  .qr { display: block; }
+  .rule { height: 2px; }
+
+  /* Single-face export mode: ?face=a-front renders one card at native size, square corners. */
+  body.export { background: transparent; }
+  body.export header.page, body.export .pair h2 { display: none; }
+  body.export main { padding: 0; margin: 0; max-width: none; display: block; }
+  body.export .faces { display: block; }
+  body.export .slot { width: var(--cw); height: var(--ch); }
+  body.export .slot > .card { transform: none; box-shadow: none; border-radius: 0; }
+
+  @media (max-width: 720px) {
+    :root { --s: calc((100vw - 32px) / 1004); }
+    header.page, main { padding-left: 16px; padding-right: 16px; }
+    header.page h1 { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Constant Labs<br>Business Cards</h1>
+  <p>85 × 55 mm, rounded 3.5 mm corners. Dither fields are the site's own shader (nebulaVeil, ridges, warp, wireTerrain) rendered once at print resolution. Type: AC Compacta and Geist Mono. Every QR points to constantlabs.ai.</p>
+</header>
+<main id="cards"></main>
+
+<script src="assets/data.js"></script>
+<script>
+const INK = "#0A0F0D", TEAL = "#3E8C7A", CYAN = "#39AC99", CREAM = "#EDE8DC";
+const P = {
+  name: "Akhmad Hasan",
+  email: "akhmad@constantlabs.ai",
+  phone: "+971 56 149 5656",
+  web: "constantlabs.ai",
+  city: "Dubai, UAE",
+  tag: "Software • Websites • AI",
+  first: "Akhmad",
+  last: "Hasan",
+};
+const TAMER = { ...P, name: "Mohamad Tamer", first: "Mohamad", last: "Tamer", email: "info@constantlabs.ai", phone: "+971 50 933 1602" };
+const params = new URLSearchParams(location.search);
+const DPR = Number(params.get("dpr")) || 2;
+
+/* ---------- logo ---------- */
+const L = CL.logo;
+const ARABIC = [`${L.arabic[0]} ${L.arabic[1]}`, ...L.arabic.slice(2)];
+const LOGO_PARTS = {
+  full: [L.english, ...ARABIC],
+  english: [L.english],
+  arabic: ARABIC,
+};
+const BOXES = {};
+(function measureLogo() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("style", "position:absolute;visibility:hidden;width:0;height:0");
+  document.body.appendChild(svg);
+  for (const [k, ds] of Object.entries(LOGO_PARTS)) {
+    const g = document.createElementNS(svg.namespaceURI, "g");
+    g.innerHTML = ds.map((d) => `<path d="${d}"/>`).join("");
+    svg.appendChild(g);
+    const b = g.getBBox();
+    BOXES[k] = [b.x, b.y, b.width, b.height];
+  }
+  svg.remove();
+})();
+/* size: {w} or {h}, in card px */
+function logo(part, color, style, size) {
+  const [x, y, w, h] = BOXES[part];
+  const width = size.w ?? (size.h * w) / h;
+  const height = size.h ?? (size.w * h) / w;
+  return `<svg class="logo z" viewBox="${x} ${y} ${w} ${h}" width="${width}" height="${height}" fill="${color}" fill-rule="evenodd" style="${style}">${LOGO_PARTS[part].map((d) => `<path d="${d}"/>`).join("")}</svg>`;
+}
+
+/*
+  ---------- QR ----------
+  No chip: the modules are drawn straight onto the card in the theme's colour.
+  The card's own margin is the quiet zone, so nothing may sit within ~5 modules
+  of it. Light-on-dark codes are inverted; current iOS and Android cameras read
+  them, but test-scan a printed proof before a full run.
+*/
+const qrView = CL.qr.match(/viewBox="([^"]+)"/)[1];
+const qrPath = [...CL.qr.matchAll(/<path[^>]*stroke="[^"]+"[^>]*d="([^"]+)"/g)].map((m) => m[1])[0]
+  ?? [...CL.qr.matchAll(/d="([^"]+)"/g)].map((m) => m[1]).pop();
+function qr(size, color, style) {
+  return `<svg class="qr z" viewBox="${qrView}" width="${size}" height="${size}" shape-rendering="crispEdges" style="${style}"><path d="${qrPath}" stroke="${color}" fill="none"/></svg>`;
+}
+
+/* ---------- dither field ---------- */
+const PROFILES = {
+  hero:    { src: "nebulaVeil", scale: 1,   rot: 51, contrast: 1.15, balance: 0.03,  t: 145 + 6 },
+  ridges:  { src: "ridges",     scale: 5,   rot: 0,  contrast: 1.41, balance: -0.16, t: 22 },
+  band:    { src: "warp",       scale: 2,   rot: 90, contrast: 1.15, balance: 0.06,  t: 30 },
+  terrain: { src: "wireTerrain",scale: 1,   rot: 0,  contrast: 1.2,  balance: -0.1,  t: 12 },
+  veilWide:{ src: "nebulaVeil", scale: 0.7, rot: 20, contrast: 1.2,  balance: 0.0,   t: 145 + 18 },
+};
+function field(profile, fg, bg, style, cell = 3, overrides = {}) {
+  const p = { ...PROFILES[profile], ...overrides };
+  return `<canvas class="field" style="${style}" data-src="${p.src}" data-scale="${p.scale}" data-rot="${p.rot}" data-contrast="${p.contrast}" data-balance="${p.balance}" data-t="${p.t}" data-cell="${cell}" data-fg="${fg}" data-bg="${bg}"></canvas>`;
+}
+
+/* ---------- shared blocks ---------- */
+const contactLines = (color, size = 22, gap = 12, who = P) => `
+  <div class="mono z" style="color:${color};font-size:${size}px;line-height:1;display:grid;gap:${gap}px">
+    <span>${who.email}</span><span>${who.phone}</span><span>${P.web}</span>
+  </div>`;
+
+/*
+  The name back from card A, reusable. id prefixes keep the fitted type's
+  METRICS lookups unique when several cards share the layout.
+*/
+const nameBack = (id, { bg, fg, accent, qrColor = fg, who = P }) => `
+      <div class="card" style="background:${bg}">
+        <div id="${id}-1" class="compacta z fit" data-fit="440" data-sy="1.06" style="left:64px;top:64px;color:${fg}">${who.first}</div>
+        <div id="${id}-2" class="compacta z fit" data-same="${id}-1" data-below="${id}-1" data-gap="10" data-sy="1.06" style="left:64px;color:${fg}">${who.last}</div>
+        <div class="z" data-after="${id}-2" data-dx="12" style="width:34px;height:34px;background:${accent}"></div>
+        <div style="left:68px;bottom:64px">${contactLines(fg, 22, 12, who)}</div>
+        ${qr(210, qrColor, "right:68px;bottom:64px")}
+        <div class="mono z" style="right:68px;top:68px;font-size:18px;color:${accent};letter-spacing:.16em">${P.city.toUpperCase()}</div>
+      </div>`;
+
+/* ---------- the cards ---------- */
+const CARDS = [
+  {
+    id: "a", title: "Plate", note: "The reference, rebuilt in the site's type",
+    front: `
+      <div class="card" style="background:${CYAN}">
+        <div id="a-con" class="compacta z fit" data-fit="720" data-sy="0.97" style="left:54px;top:50px;color:${INK}">Constant</div>
+        <div id="a-labs" class="compacta z fit" data-same="a-con" data-below="a-con" data-gap="12" data-sy="0.97" style="left:54px;color:${INK}">Labs</div>
+        <div class="z" data-after="a-labs" data-dx="16" style="width:50px;height:50px;background:${CREAM}"></div>
+        <div class="mono z" style="left:54px;top:505px;font-size:31px;letter-spacing:.12em;color:${INK}">${P.tag}</div>
+        <div class="rule z" style="left:54px;right:54px;top:566px;background:${INK}"></div>
+        <div class="mono z" style="left:54px;top:590px;font-size:22px;color:${INK}">${P.web}</div>
+        <div class="mono z" style="right:54px;top:590px;font-size:22px;color:${INK}">${P.city}</div>
+      </div>`,
+    back: nameBack("ab", { bg: INK, fg: CREAM, accent: CYAN }),
+  },
+  {
+    id: "b", title: "Hero", note: "Homepage hero: nebulaVeil in teal on #0A0F0D, cream wordmark",
+    front: `
+      <div class="card" style="background:${INK}">
+        ${field("hero", TEAL, INK, "left:0;top:0;width:1004px;height:520px")}
+        <div id="b-1" class="compacta z fit" data-fit="500" data-sy="1.37" style="left:56px;top:56px;color:${CREAM}">Constant</div>
+        <div id="b-2" class="compacta z fit" data-same="b-1" data-below="b-1" data-gap="22" data-sy="1.37" style="left:56px;color:${CREAM}">Labs</div>
+        <div class="z" style="left:0;right:0;bottom:0;height:130px;background:${INK}"></div>
+        <div class="mono z" style="left:56px;bottom:52px;font-size:24px;color:${CREAM};letter-spacing:.14em">${P.tag}</div>
+        <div class="mono z" style="right:56px;bottom:52px;font-size:24px;color:${TEAL}">${P.web}</div>
+      </div>`,
+    back: `
+      <div class="card" style="background:${INK}">
+        ${field("hero", TEAL, INK, "left:0;top:0;width:1004px;height:130px", 3, { t: 170 })}
+        <div class="mono-m z" style="left:56px;top:190px;font-size:40px;color:${CREAM};letter-spacing:.06em">${P.name}</div>
+        <div class="mono z" style="left:56px;top:246px;font-size:20px;color:${TEAL};letter-spacing:.16em">CONSTANT LABS · ${P.city.toUpperCase()}</div>
+        <div style="left:56px;bottom:56px">${contactLines(CREAM, 24, 16)}</div>
+        ${qr(200, CYAN, "right:56px;bottom:56px")}
+      </div>`,
+  },
+  {
+    id: "c", title: "Lockup", note: "Full bilingual lockup on cream",
+    front: `
+      <div class="card" style="background:${CREAM}">
+        ${logo("full", INK, "position:absolute;left:64px;top:60px", { h: 470 })}
+        <div style="left:64px;bottom:58px;width:28px;height:28px;background:${CYAN}" class="z"></div>
+        <div class="mono z" style="left:112px;bottom:60px;font-size:22px;color:${INK};letter-spacing:.14em">${P.tag}</div>
+        <div class="mono z" style="right:64px;bottom:60px;font-size:22px;color:${INK}">${P.web}</div>
+      </div>`,
+    back: `
+      <div class="card" style="background:${INK}">
+        ${field("hero", TEAL, INK, "left:0;bottom:0;width:1004px;height:220px", 3, { t: 160, rot: 10 })}
+        <div class="mono-m z" style="left:64px;top:64px;font-size:40px;color:${CREAM};letter-spacing:.06em">${P.name}</div>
+        <div class="mono z" style="left:64px;top:120px;font-size:20px;color:${CYAN};letter-spacing:.16em">CONSTANT LABS · ${P.city.toUpperCase()}</div>
+        <div style="left:64px;top:230px">${contactLines(CREAM, 24, 16)}</div>
+        ${qr(210, CREAM, "right:64px;top:64px")}
+      </div>`,
+  },
+  {
+    id: "d", title: "Split", note: "Field on the left, flat ground on the right",
+    front: `
+      <div class="card" style="background:${INK}">
+        ${field("hero", CYAN, INK, "left:0;top:0;width:470px;height:650px", 3, { t: 150, rot: 70 })}
+        ${logo("full", CREAM, "position:absolute;left:520px;top:60px", { w: 420 })}
+        <div class="mono z" style="left:520px;bottom:60px;font-size:20px;color:${CYAN};letter-spacing:.14em">${P.tag}</div>
+      </div>`,
+    back: `
+      <div class="card" style="background:${CREAM}">
+        <div class="mono-m z" style="left:64px;top:64px;font-size:42px;color:${INK};letter-spacing:.06em">${P.name}</div>
+        <div class="mono z" style="left:64px;top:122px;font-size:20px;color:${TEAL};letter-spacing:.16em">CONSTANT LABS</div>
+        <div class="rule z" style="left:64px;right:64px;top:180px;background:${INK}"></div>
+        <div style="left:64px;bottom:64px">${contactLines(INK, 24, 16)}</div>
+        <div class="mono z" style="left:64px;top:214px;font-size:20px;color:${INK};letter-spacing:.14em">${P.city.toUpperCase()}</div>
+        ${qr(210, INK, "right:64px;bottom:64px")}
+      </div>`,
+  },
+  {
+    id: "e", title: "Name first", note: "Your name as the headline, brand as the sign-off",
+    front: `
+      <div class="card" style="background:${INK}">
+        <div id="e-1" class="compacta z fit" data-fit="560" data-sy="1.12" style="left:56px;top:52px;color:${CREAM}">Akhmad</div>
+        <div id="e-2" class="compacta z fit" data-same="e-1" data-below="e-1" data-gap="14" data-sy="1.12" style="left:56px;color:${CREAM}">Hasan</div>
+        <div class="z" data-after="e-2" data-dx="16" style="width:50px;height:50px;background:${CYAN}"></div>
+        <div class="mono z" style="left:62px;bottom:52px;font-size:22px;color:${CYAN};letter-spacing:.14em">CONSTANT LABS</div>
+        <div class="mono z" style="right:62px;bottom:52px;font-size:22px;color:${CREAM}">${P.city}</div>
+      </div>`,
+    back: `
+      <div class="card" style="background:${INK}">
+        ${field("ridges", TEAL, INK, "left:0;top:0;width:1004px;height:650px")}
+        <div class="z" style="left:48px;top:48px;right:48px;bottom:48px;background:${INK};border-radius:4px"></div>
+        ${logo("full", CREAM, "position:absolute;left:92px;top:92px", { h: 250 })}
+        <div style="left:92px;bottom:92px">${contactLines(CREAM, 22, 14)}</div>
+        ${qr(190, CREAM, "right:92px;bottom:92px")}
+      </div>`,
+  },
+  {
+    id: "f", title: "Calligraphy", note: "Cyan Arabic on ink, cropped off the edge. Back: the name page from A, for Mohamad Tamer",
+    front: `
+      <div class="card" style="background:${INK}">
+        ${logo("arabic", CYAN, "position:absolute;right:-90px;top:-40px", { h: 700 })}
+        <div id="f-1" class="compacta z fit" data-fit="250" data-sy="1.2" style="left:60px;top:432px;color:${CREAM}">Constant</div>
+        <div id="f-2" class="compacta z fit" data-same="f-1" data-below="f-1" data-gap="10" data-sy="1.2" style="left:60px;color:${CREAM}">Labs</div>
+        <div class="z" data-after="f-2" data-dx="10" style="width:26px;height:26px;background:${CYAN}"></div>
+      </div>`,
+    back: nameBack("fb", { bg: INK, fg: CREAM, accent: CYAN, who: TAMER }),
+  },
+  {
+    id: "f2", title: "Calligraphy · Cream", note: "Teal Arabic on cream with a cyan mark",
+    front: `
+      <div class="card" style="background:${CREAM}">
+        ${logo("arabic", TEAL, "position:absolute;right:-90px;top:-40px", { h: 700 })}
+        <div id="f2-1" class="compacta z fit" data-fit="250" data-sy="1.2" style="left:60px;top:432px;color:${INK}">Constant</div>
+        <div id="f2-2" class="compacta z fit" data-same="f2-1" data-below="f2-1" data-gap="10" data-sy="1.2" style="left:60px;color:${INK}">Labs</div>
+        <div class="z" data-after="f2-2" data-dx="10" style="width:26px;height:26px;background:${CYAN}"></div>
+      </div>`,
+    back: nameBack("f2b", { bg: CREAM, fg: INK, accent: TEAL }),
+  },
+  {
+    id: "f3", title: "Calligraphy · Cyan", note: "Ink Arabic on brand cyan, the plate's colourway",
+    front: `
+      <div class="card" style="background:${CYAN}">
+        ${logo("arabic", INK, "position:absolute;right:-90px;top:-40px", { h: 700 })}
+        <div id="f3-1" class="compacta z fit" data-fit="250" data-sy="1.2" style="left:60px;top:432px;color:${INK}">Constant</div>
+        <div id="f3-2" class="compacta z fit" data-same="f3-1" data-below="f3-1" data-gap="10" data-sy="1.2" style="left:60px;color:${INK}">Labs</div>
+        <div class="z" data-after="f3-2" data-dx="10" style="width:26px;height:26px;background:${CREAM}"></div>
+      </div>`,
+    back: nameBack("f3b", { bg: INK, fg: CREAM, accent: CYAN }),
+  },
+  {
+    id: "f4", title: "Calligraphy · Field", note: "Cream Arabic over the hero dither; English on its own flat ground",
+    front: `
+      <div class="card" style="background:${INK}">
+        ${field("hero", TEAL, INK, "left:0;top:0;width:1004px;height:650px", 3, { t: 158 })}
+        ${logo("arabic", CREAM, "position:absolute;right:-90px;top:-40px", { h: 700 })}
+        <div class="z" style="left:0;top:400px;width:360px;height:250px;background:${INK};border-top-right-radius:4px"></div>
+        <div id="f4-1" class="compacta z fit" data-fit="250" data-sy="1.2" style="left:60px;top:432px;color:${CYAN}">Constant</div>
+        <div id="f4-2" class="compacta z fit" data-same="f4-1" data-below="f4-1" data-gap="10" data-sy="1.2" style="left:60px;color:${CYAN}">Labs</div>
+        <div class="z" data-after="f4-2" data-dx="10" style="width:26px;height:26px;background:${CREAM}"></div>
+      </div>`,
+    back: nameBack("f4b", { bg: INK, fg: CREAM, accent: CYAN }),
+  },
+  {
+    id: "g", title: "Terminal", note: "Mono readout over a wireTerrain band",
+    front: `
+      <div class="card" style="background:${INK}">
+        ${field("terrain", TEAL, INK, "left:0;bottom:0;width:1004px;height:330px")}
+        <div class="z" style="left:0;right:0;top:0;height:320px;background:${INK}"></div>
+        <div class="mono z" style="left:60px;top:56px;font-size:26px;color:${CYAN}">~/constantlabs $</div>
+        <div class="compacta z fit" data-fit="884" data-sy="1.0" style="left:60px;top:112px;color:${CREAM}">Constant Labs</div>
+      </div>`,
+    back: `
+      <div class="card" style="background:${INK}">
+        <div class="mono z" style="left:60px;top:60px;font-size:26px;letter-spacing:.04em;line-height:1.8;color:${CREAM}">
+          <div><span style="color:${CYAN}">name</span>&nbsp;&nbsp;${P.name}</div>
+          <div><span style="color:${CYAN}">mail</span>&nbsp;&nbsp;${P.email}</div>
+          <div><span style="color:${CYAN}">call</span>&nbsp;&nbsp;${P.phone}</div>
+          <div><span style="color:${CYAN}">web&nbsp;</span>&nbsp;&nbsp;${P.web}</div>
+          <div><span style="color:${CYAN}">base</span>&nbsp;&nbsp;${P.city}</div>
+          <div style="margin-top:18px;color:${CYAN}">_</div>
+        </div>
+        ${qr(200, CYAN, "right:60px;bottom:60px")}
+      </div>`,
+  },
+  {
+    id: "h", title: "Tongues", note: "Offer-band warp (rotated 90°) in ink over cyan",
+    front: `
+      <div class="card" style="background:${CYAN}">
+        ${field("band", INK, CYAN, "left:0;top:0;width:1004px;height:650px", 4)}
+        <div class="z" style="left:56px;top:56px;padding:36px 40px;background:${CYAN};border-radius:4px">
+          ${logo("full", INK, "", { h: 300 })}
+        </div>
+        <div class="mono-m z" style="right:56px;bottom:56px;padding:14px 18px;background:${INK};color:${CREAM};font-size:22px;border-radius:4px">${P.web}</div>
+      </div>`,
+    back: `
+      <div class="card" style="background:${CYAN}">
+        <div class="compacta z fit" data-fit="620" data-sy="1.15" style="left:60px;top:60px;color:${INK}">Akhmad Hasan</div>
+        <div class="rule z" style="left:60px;right:60px;top:236px;background:${INK}"></div>
+        <div style="left:60px;bottom:60px">${contactLines(INK, 24, 16)}</div>
+        <div class="mono z" style="left:60px;top:266px;font-size:20px;color:${INK};letter-spacing:.14em">${P.tag}</div>
+        ${qr(210, INK, "right:60px;bottom:60px")}
+      </div>`,
+  },
+];
+
+/* ---------- mount ---------- */
+const onlyFace = params.get("face"); // e.g. "b-front"
+if (onlyFace) document.body.classList.add("export");
+document.getElementById("cards").innerHTML = CARDS.map((c) => {
+  const faces = ["front", "back"].filter((f) => !onlyFace || onlyFace === `${c.id}-${f}`);
+  if (!faces.length) return "";
+  return `<section class="pair"><h2><b>${c.id.toUpperCase()} · ${c.title}</b>${c.note}</h2>
+    <div class="faces">${faces.map((f) => `<div class="slot" data-face="${c.id}-${f}">${c[f]}</div>`).join("")}</div></section>`;
+}).join("");
+
+/*
+  Fit big type by its INK, not its line box.
+
+  Compacta's caps sit well inside its em box, so line-height tricks put the
+  glyphs somewhere unpredictable. Canvas metrics give the real cap top, cap
+  height and side bearing, so an element's left/top are where the ink starts
+  and data-fit is the ink's exact width. data-same="<id>" reuses another
+  line's size so stacked words match, as on the reference plate.
+*/
+const METRICS = {};
+function fitType() {
+  const ctx = document.createElement("canvas").getContext("2d");
+  const font = (s) => `400 ${s}px "AC Compacta"`;
+  document.querySelectorAll(".fit").forEach((el) => {
+    const text = el.textContent.trim().toUpperCase();
+    ctx.font = font(100);
+    const m100 = ctx.measureText(text);
+    const size = el.dataset.same
+      ? METRICS[el.dataset.same].size
+      : (100 * Number(el.dataset.fit)) / (m100.actualBoundingBoxLeft + m100.actualBoundingBoxRight);
+    ctx.font = font(size);
+    const m = ctx.measureText(text);
+    const sy = Number(el.dataset.sy || 1);
+    const baseline = (size - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent;
+    const off = baseline - m.actualBoundingBoxAscent;
+    Object.assign(el.style, {
+      fontSize: `${size}px`,
+      lineHeight: "1",
+      marginTop: `${-off}px`,
+      marginLeft: `${m.actualBoundingBoxLeft}px`,
+      transformOrigin: `0 ${off}px`,
+      transform: `scaleY(${sy})`,
+    });
+    if (el.dataset.below) {
+      const a = METRICS[el.dataset.below];
+      el.style.top = `${a.top + a.cap + Number(el.dataset.gap || 0)}px`;
+    }
+    const box = {
+      size,
+      left: parseFloat(el.style.left) || 0,
+      top: parseFloat(el.style.top) || 0,
+      width: m.actualBoundingBoxLeft + m.actualBoundingBoxRight,
+      cap: m.actualBoundingBoxAscent * sy,
+    };
+    if (el.id) METRICS[el.id] = box;
+  });
+  /* Anything that hangs off a word: the cream square after LABS, etc. */
+  document.querySelectorAll("[data-after]").forEach((el) => {
+    const a = METRICS[el.dataset.after];
+    el.style.left = `${a.left + a.width + Number(el.dataset.dx || 0)}px`;
+    el.style.top = `${a.top + a.cap - el.offsetHeight}px`;
+  });
+}
+
+/* ---------- render every field once, with one shared WebGL2 context ---------- */
+function renderFields() {
+  const gl = document.createElement("canvas").getContext("webgl2", { preserveDrawingBuffer: true, antialias: false });
+  if (!gl) return; // flat ground fallback, never a dot tile
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vs, "#version 300 es\nin vec2 a_position;\nvoid main(){gl_Position=vec4(a_position,0.0,1.0);}");
+  gl.compileShader(vs);
+  const programs = {};
+  const program = (idx) => {
+    if (programs[idx]) return programs[idx];
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, `${CL.head}float sourcePattern(vec2 p, float time, int source) {\n${CL.bodies[idx] ?? ""}\n${CL.fallback}\n}\n\n${CL.tail}`);
+    gl.compileShader(fs);
+    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(fs));
+    const pr = gl.createProgram();
+    gl.attachShader(pr, vs); gl.attachShader(pr, fs);
+    gl.bindAttribLocation(pr, 0, "a_position");
+    gl.linkProgram(pr);
+    return (programs[idx] = pr);
+  };
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const rgb = (hex) => [0, 2, 4].map((i) => parseInt(hex.slice(1 + i, 3 + i), 16) / 255);
+
+  document.querySelectorAll("canvas.field").forEach((cv) => {
+    const d = cv.dataset;
+    const w = Math.round(cv.offsetWidth * DPR), h = Math.round(cv.offsetHeight * DPR);
+    gl.canvas.width = w; gl.canvas.height = h;
+    gl.viewport(0, 0, w, h);
+    const idx = CL.sources[d.src];
+    const pr = program(idx);
+    gl.useProgram(pr);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const u = (n) => gl.getUniformLocation(pr, n);
+    gl.uniform2f(u("u_resolution"), w, h);
+    gl.uniform1f(u("u_pixelRatio"), DPR);
+    gl.uniform2f(u("u_ripplePoint"), 0.5, 0.5);
+    gl.uniform1f(u("u_rippleAge"), -1);
+    gl.uniform1f(u("u_time"), Number(d.t));
+    gl.uniform1f(u("u_size"), Number(d.cell));
+    gl.uniform1f(u("u_scale"), Number(d.scale));
+    gl.uniform1f(u("u_rotation"), (Number(d.rot) * Math.PI) / 180);
+    gl.uniform1f(u("u_contrast"), Number(d.contrast));
+    gl.uniform1f(u("u_balance"), Number(d.balance));
+    gl.uniform1f(u("u_rippleStrength"), 0);
+    gl.uniform1i(u("u_source"), idx);
+    gl.uniform1i(u("u_dither"), 2); // 4x4 Bayer
+    gl.uniform3fv(u("u_foreground"), rgb(d.fg));
+    gl.uniform3fv(u("u_background"), rgb(d.bg));
+    gl.uniform1i(u("u_useTexture"), 0);
+    gl.uniform1f(u("u_texAspect"), 1);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(gl.canvas, 0, 0);
+  });
+  gl.getExtension("WEBGL_lose_context")?.loseContext();
+}
+
+document.fonts.ready.then(() => {
+  fitType();
+  renderFields();
+  document.body.dataset.ready = "1";
+});
+</script>
+</body>
+</html>
